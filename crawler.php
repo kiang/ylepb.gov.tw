@@ -2,12 +2,6 @@
 
 $rootPath = __DIR__;
 
-$targetPath = __DIR__ . '/data/' . date('Y/m');
-
-if (!file_exists($targetPath)) {
-    mkdir($targetPath, 0777, true);
-}
-
 $baseUrl = 'http://218.161.81.10/epb/';
 
 $stations = array(
@@ -24,20 +18,9 @@ $stations = array(
 );
 
 // station, time, item, value, unit
-$targetFile = $targetPath . '/' . date('Ymd') . '.csv';
+$targetFile = false;
 
 $ref = array();
-if (file_exists($targetFile)) {
-    $fh = fopen($targetFile, 'r');
-    fgetcsv($fh, 2048);
-    while ($line = fgetcsv($fh, 2048)) {
-        $ref[implode(',', $line)] = true;
-    }
-} else {
-    $fh = fopen($targetFile, 'w');
-    fputcsv($fh, array('station', 'time', 'item', 'value', 'unit'));
-}
-$fh = fopen($targetFile, 'a');
 
 foreach ($stations AS $station => $url) {
     $page = file_get_contents($baseUrl . $url);
@@ -48,6 +31,25 @@ foreach ($stations AS $station => $url) {
     $time[2] = str_pad($time[2], 2, '0', STR_PAD_LEFT);
     $time[3] = str_pad($time[3], 2, '0', STR_PAD_LEFT);
     $time[4] = str_pad(intval($time[4]), 2, '0', STR_PAD_LEFT);
+    if (false === $targetFile) {
+        $targetPath = __DIR__ . "/data/{$time[1]}/{$time[2]}";
+        if (!file_exists($targetPath)) {
+            mkdir($targetPath, 0777, true);
+        }
+        $targetFile = $targetPath . "/{$time[1]}{$time[2]}{$time[3]}.csv";
+
+        if (file_exists($targetFile)) {
+            $fh = fopen($targetFile, 'r');
+            fgetcsv($fh, 2048);
+            while ($line = fgetcsv($fh, 2048)) {
+                $ref[implode(',', $line)] = true;
+            }
+        } else {
+            $fh = fopen($targetFile, 'w');
+            fputcsv($fh, array('station', 'time', 'item', 'value', 'unit'));
+        }
+        $fh = fopen($targetFile, 'a');
+    }
 
     $lines = explode('</tr>', $page);
     foreach ($lines AS $line) {
